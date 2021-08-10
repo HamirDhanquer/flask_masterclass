@@ -1,4 +1,5 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect
+from werkzeug.utils import redirect
 from flask_sqlalchemy import SQLAlchemy
 
 
@@ -14,14 +15,36 @@ class User(db.Model):
     name = db.Column(db.String(84), nullable=False)
     email = db.Column(db.String(84), nullable=False, unique=True, index=True)
     password = db.Column(db.String(255), nullable=False)
+    profile = db.relationship("Profile",backref="user", uselist=False)
 
     def __str__(self):
         return self.name
 
+class Profile(db.Model):
+    __tablename__ = "profile"
+    id = db.Column(db.Integer, primary_key=True)
+    photo = db.Column(db.Unicode(255), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+    def __str__(self):
+        return self.photo
+
 @app.route("/")
 def index():
     users = User.query.all()
-    return render_template("user.html",users=users)
+    return render_template("users.html",users=users)
+
+@app.route("/user/<int:id>")
+def unique(id):
+    user = User.query.get(id)
+    return render_template("user.html",user=user)
+
+@app.route("/user/delete/<int:id>")
+def delete(id):
+    user = User.query.filter_by(id=id).first()
+    db.session.delete(user)
+    db.session.commit()
+    return redirect("/")
 
 
 if __name__ == "__main__":
